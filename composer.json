@@ -1,0 +1,28 @@
+{
+    "name": "tornado-engine/access-microsoft-entra",
+    "description": "Tornado Engine module: gives roles to Entra ID groups and users, synced nightly.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "illuminate/support": "^13.0",
+        "tornado-engine/access": ">=0.6",
+        "tornado-engine/cron": ">=0.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "TornadoEngine\\AccessMicrosoftEntra\\": "src/"
+        }
+    },
+    "extra": {
+        "tornado": {
+            "name": "Access-Microsoft-Entra",
+            "core": ">=0.11",
+            "core-module": false,
+            "provider": "TornadoEngine\\AccessMicrosoftEntra\\AccessMicrosoftEntraServiceProvider"
+        },
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    }
+}
