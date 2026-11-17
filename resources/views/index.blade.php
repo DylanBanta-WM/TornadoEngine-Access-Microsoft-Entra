@@ -17,12 +17,12 @@
 
         <div x-data="{ editing: @js(! $configured || $errors->has('connection')), own: @js(! (old('use_signin', $usesSignInApp || ! $configured) && $signInApp)) }" class="space-y-4">
             @if ($configured)
-                <div x-show="! editing" class="space-y-4">
-                    <dl class="space-y-1 break-all">
+                <div x-show="! editing" class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <dl class="space-y-1 break-all md:flex md:flex-wrap md:gap-x-8 md:space-y-0">
                         <div><dt class="inline font-medium text-gray-900 dark:text-gray-100">{{ __('Tenant:') }}</dt> <dd class="inline">{{ $tenant }}</dd></div>
                         <div><dt class="inline font-medium text-gray-900 dark:text-gray-100">{{ __('App registration:') }}</dt> <dd class="inline">{{ $usesSignInApp ? __('the Microsoft sign-in app') : __('saved') }}</dd></div>
                     </dl>
-                    <div class="flex justify-end">
+                    <div class="flex shrink-0 justify-end">
                         <x-secondary-button type="button" x-on:click="editing = true">{{ __('Change') }}</x-secondary-button>
                     </div>
                 </div>
@@ -37,7 +37,7 @@
                         <span>{{ __('Use the Microsoft sign-in app registration') }}</span>
                     </label>
                 @endif
-                <div x-show="own" class="space-y-4">
+                <div x-show="own" class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     @foreach (['tenant_id' => __('Directory (tenant) ID'), 'client_id' => __('Application (client) ID')] as $field => $label)
                         <div>
                             <x-input-label :for="'entra_'.$field" :value="$label" />
@@ -61,95 +61,99 @@
     </x-settings-card>
 
     @if ($configured)
-        <x-settings-card :title="__('Roles from Entra ID')">
-            @if ($rules->isNotEmpty())
-                <ul class="divide-y divide-gray-200 dark:divide-gray-700 rounded-md border border-gray-200 dark:border-gray-700">
-                    @foreach ($rules as $rule)
-                        <li class="flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                            <div class="min-w-0">
-                                <p class="font-medium text-gray-900 dark:text-gray-100">{{ $rule->role->name }}
-                                    @if ($rule->primary)
-                                        <span class="ms-1 rounded bg-indigo-50 dark:bg-indigo-900/50 px-1.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">{{ __('Primary') }}</span>
-                                    @endif
-                                </p>
-                                <p class="break-all text-gray-600 dark:text-gray-400">{{ __(\TornadoEngine\AccessMicrosoftEntra\Models\Rule::TYPES[$rule->type]) }}: <code class="font-mono">{{ $rule->label ?? $rule->value }}</code></p>
-                                @if ($rule->matched !== null)
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ trans_choice(':count person at the last sync|:count people at the last sync', $rule->matched) }}</p>
-                                @endif
+        <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+            <div class="lg:col-span-2">
+                <x-settings-card :title="__('Roles from Entra ID')">
+                    @if ($rules->isNotEmpty())
+                        <ul class="divide-y divide-gray-200 dark:divide-gray-700 rounded-md border border-gray-200 dark:border-gray-700">
+                            @foreach ($rules as $rule)
+                                <li class="grid grid-cols-1 gap-1 px-3 py-2 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_11rem] md:items-center md:gap-x-4 md:gap-y-0">
+                                    <p class="font-medium text-gray-900 dark:text-gray-100 md:row-span-2">{{ $rule->role->name }}
+                                        @if ($rule->primary)
+                                            <span class="ms-1 rounded bg-indigo-50 dark:bg-indigo-900/50 px-1.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">{{ __('Primary') }}</span>
+                                        @endif
+                                    </p>
+                                    <p class="break-words text-gray-600 dark:text-gray-400">{{ __(\TornadoEngine\AccessMicrosoftEntra\Models\Rule::TYPES[$rule->type]) }}: <code class="font-mono">{{ $rule->label ?? $rule->value }}</code></p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 md:col-start-2">
+                                        @if ($rule->matched !== null)
+                                            {{ trans_choice(':count person at the last sync|:count people at the last sync', $rule->matched) }}
+                                        @endif
+                                    </p>
+                                    <span class="-ms-2 flex md:col-start-3 md:row-span-2 md:row-start-1 md:ms-0 md:justify-end">
+                                        <form method="POST" action="{{ route('access.entra.rules.primary', $rule) }}">
+                                            @csrf
+                                            <button class="min-h-11 px-2 text-sm text-gray-700 dark:text-gray-300 underline">{{ $rule->primary ? __('Not primary') : __('Make primary') }}</button>
+                                        </form>
+                                        <form method="POST" action="{{ route('access.entra.rules.destroy', $rule) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="min-h-11 px-2 text-sm text-red-700 dark:text-red-400 underline">{{ __('Remove') }}</button>
+                                        </form>
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    @include('access::primary-missed', ['missed' => $missed])
+
+                    @if ($roles->isEmpty())
+                        <p>{!! __('Make a role on the :roles tab first.', ['roles' => '<a href="'.route('access.roles.index').'" class="font-medium text-indigo-600 dark:text-indigo-400 underline">'.e(__('Roles')).'</a>']) !!}</p>
+                    @else
+                        <form method="POST" action="{{ route('access.entra.rules.store') }}" class="space-y-3" x-data="{ type: @js(old('type', 'group')) }">
+                            @csrf
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div>
+                                    <x-input-label for="role_id" :value="__('Role')" />
+                                    <select id="role_id" name="role_id" class="{{ $select }}" required>
+                                        @foreach ($roles as $role)
+                                            <option value="{{ $role->id }}" @selected((int) old('role_id') === $role->id)>{{ $role->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <x-input-label for="type" :value="__('Given to')" />
+                                    <select id="type" name="type" x-model="type" class="{{ $select }}">
+                                        @foreach (\TornadoEngine\AccessMicrosoftEntra\Models\Rule::TYPES as $type => $label)
+                                            <option value="{{ $type }}">{{ __($label) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <x-input-label for="value" x-text="{ group: @js(__('Group name, email or ID')), user: @js(__('Email address')) }[type]">{{ __('Value') }}</x-input-label>
+                                    <x-text-input id="value" name="value" class="mt-1 block w-full" type="text" :value="old('value')" required autocapitalize="off" spellcheck="false" x-bind:placeholder="{{ Js::from($placeholders) }}[type]" />
+                                </div>
                             </div>
-                            <span class="-ms-2 flex shrink-0 sm:ms-0">
-                                <form method="POST" action="{{ route('access.entra.rules.primary', $rule) }}">
-                                    @csrf
-                                    <button class="min-h-11 px-2 text-sm text-gray-700 dark:text-gray-300 underline">{{ $rule->primary ? __('Not primary') : __('Make primary') }}</button>
-                                </form>
-                                <form method="POST" action="{{ route('access.entra.rules.destroy', $rule) }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="min-h-11 px-2 text-sm text-red-700 dark:text-red-400 underline">{{ __('Remove') }}</button>
-                                </form>
-                            </span>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
+                            <x-input-error :messages="$errors->get('value')" />
+                            <div class="flex justify-end">
+                                <x-primary-button>{{ __('Add rule') }}</x-primary-button>
+                            </div>
+                        </form>
+                    @endif
+                </x-settings-card>
+            </div>
 
-            @include('access::primary-missed', ['missed' => $missed])
-
-            @if ($roles->isEmpty())
-                <p>{!! __('Make a role on the :roles tab first.', ['roles' => '<a href="'.route('access.roles.index').'" class="font-medium text-indigo-600 dark:text-indigo-400 underline">'.e(__('Roles')).'</a>']) !!}</p>
-            @else
-                <form method="POST" action="{{ route('access.entra.rules.store') }}" class="space-y-3" x-data="{ type: @js(old('type', 'group')) }">
+            <x-settings-card :title="__('Sync')">
+                <p>
+                    @if ($settings->last_run_at)
+                        {{ __('Last sync :time:', ['time' => $settings->last_run_at->diffForHumans()]) }}
+                        <span @class(['font-medium', 'text-green-700 dark:text-green-400' => $settings->last_status === 'ok', 'text-red-700 dark:text-red-400' => $settings->last_status !== 'ok'])>{{ $settings->last_status === 'ok' ? __('worked') : __('failed') }}</span>
+                        @if ($settings->last_message) — {{ $settings->last_message }}@endif
+                    @else
+                        {{ __('Hasn\'t synced yet.') }}
+                    @endif
+                </p>
+                <p class="text-gray-600 dark:text-gray-400">
+                    {{ $settings->enabled ? __('Runs on its own: :when', ['when' => \TornadoEngine\Cron\Explain::describe($schedule)]) : __('The nightly sync is turned off.') }}
+                    @can('administration')
+                        <a href="{{ route('administration.tab', 'cron') }}" class="font-medium text-indigo-600 dark:text-indigo-400 underline">{{ __('Change on Scheduled jobs') }}</a>
+                    @endcan
+                </p>
+                <form method="POST" action="{{ route('access.entra.sync') }}" class="flex justify-end">
                     @csrf
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <div>
-                            <x-input-label for="role_id" :value="__('Role')" />
-                            <select id="role_id" name="role_id" class="{{ $select }}" required>
-                                @foreach ($roles as $role)
-                                    <option value="{{ $role->id }}" @selected((int) old('role_id') === $role->id)>{{ $role->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <x-input-label for="type" :value="__('Given to')" />
-                            <select id="type" name="type" x-model="type" class="{{ $select }}">
-                                @foreach (\TornadoEngine\AccessMicrosoftEntra\Models\Rule::TYPES as $type => $label)
-                                    <option value="{{ $type }}">{{ __($label) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <x-input-label for="value" x-text="{ group: @js(__('Group name, email or ID')), user: @js(__('Email address')) }[type]">{{ __('Value') }}</x-input-label>
-                            <x-text-input id="value" name="value" class="mt-1 block w-full" type="text" :value="old('value')" required autocapitalize="off" spellcheck="false" x-bind:placeholder="{{ Js::from($placeholders) }}[type]" />
-                        </div>
-                    </div>
-                    <x-input-error :messages="$errors->get('value')" />
-                    <div class="flex justify-end">
-                        <x-primary-button>{{ __('Add rule') }}</x-primary-button>
-                    </div>
+                    <x-primary-button>{{ __('Sync now') }}</x-primary-button>
                 </form>
-            @endif
-        </x-settings-card>
-
-        <x-settings-card :title="__('Sync')">
-            <p>
-                @if ($settings->last_run_at)
-                    {{ __('Last sync :time:', ['time' => $settings->last_run_at->diffForHumans()]) }}
-                    <span @class(['font-medium', 'text-green-700 dark:text-green-400' => $settings->last_status === 'ok', 'text-red-700 dark:text-red-400' => $settings->last_status !== 'ok'])>{{ $settings->last_status === 'ok' ? __('worked') : __('failed') }}</span>
-                    @if ($settings->last_message) — {{ $settings->last_message }}@endif
-                @else
-                    {{ __('Hasn\'t synced yet.') }}
-                @endif
-            </p>
-            <p class="text-gray-600 dark:text-gray-400">
-                {{ $settings->enabled ? __('Runs on its own: :when', ['when' => \TornadoEngine\Cron\Explain::describe($schedule)]) : __('The nightly sync is turned off.') }}
-                @can('administration')
-                    <a href="{{ route('administration.tab', 'cron') }}" class="font-medium text-indigo-600 dark:text-indigo-400 underline">{{ __('Change on Scheduled jobs') }}</a>
-                @endcan
-            </p>
-            <form method="POST" action="{{ route('access.entra.sync') }}" class="flex justify-end">
-                @csrf
-                <x-primary-button>{{ __('Sync now') }}</x-primary-button>
-            </form>
-        </x-settings-card>
+            </x-settings-card>
+        </div>
     @endif
 </x-admin-layout>
