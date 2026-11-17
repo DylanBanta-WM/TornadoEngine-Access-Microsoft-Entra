@@ -20,7 +20,8 @@
             "core": ">=0.11",
             "core-module": false,
             "provider": "TornadoEngine\\AccessMicrosoftEntra\\AccessMicrosoftEntraServiceProvider",
-            "settings": "/access/entra-id"
+            "settings": "/access/entra-id",
+            "needs-setup": true
         },
         "branch-alias": {
             "dev-main": "0.2.x-dev"
