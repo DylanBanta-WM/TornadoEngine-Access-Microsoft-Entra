@@ -11,5 +11,6 @@ Route::middleware(['web', 'auth', 'can:access.manage'])
         Route::post('/connection', [EntraController::class, 'connection'])->name('connection');
         Route::post('/rules', [EntraController::class, 'store'])->name('rules.store');
         Route::delete('/rules/{rule}', [EntraController::class, 'destroy'])->name('rules.destroy');
+        Route::post('/rules/{rule}/primary', [EntraController::class, 'primary'])->name('rules.primary');
         Route::post('/sync', [EntraController::class, 'sync'])->name('sync');
     });

@@ -16,7 +16,13 @@ class Rule extends Model
 
     protected $table = 'access_microsoft_entra_rules';
 
-    protected $fillable = ['role_id', 'type', 'value', 'label', 'matched'];
+    protected $fillable = ['role_id', 'type', 'value', 'label', 'primary', 'matched'];
+
+    /** How the rule reads on the page, for example: the OU OU=Students,DC=district,DC=local. */
+    public function describe(): string
+    {
+        return __('the :type :value', ['type' => strtolower(__(self::TYPES[$this->type])), 'value' => $this->label ?? $this->value]);
+    }
 
     public function role(): BelongsTo
     {
@@ -25,6 +31,6 @@ class Rule extends Model
 
     protected function casts(): array
     {
-        return ['matched' => 'integer'];
+        return ['primary' => 'boolean', 'matched' => 'integer'];
     }
 }

@@ -25,6 +25,20 @@ class AccessMicrosoftEntraServiceProvider extends ServiceProvider
                 description: __('Gives roles to the people in your Entra ID rules (Users and roles → Entra ID), and takes them back from people who left.'));
         });
 
+        // With the broker: names and employee IDs from Entra ID.
+        $this->callAfterResolving('TornadoEngine\Broker\Broker', function ($broker) {
+            $broker->source('entra-id', function (array $emails) {
+                if (! Graph::configured()) {
+                    return [];
+                }
+                $users = app(Graph::class)->users();
+
+                return collect($emails)->filter(fn ($email) => isset($users[$email]))->mapWithKeys(fn ($email) => [$email => array_values(array_filter([
+                    [$users[$email]['name'], 'name'], [$users[$email]['given'], 'given'], [$users[$email]['family'], 'family'], [$users[$email]['employee_id'], 'employeeId'],
+                ], fn ($value) => $value[0] !== ''))])->all();
+            });
+        });
+
         $this->callAfterResolving(Docs::class, function (Docs $docs) {
             $docs->add('entra-id', __('Set up Entra ID'), 'access-microsoft-entra::docs.setup', order: 41);
         });

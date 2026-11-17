@@ -6,7 +6,7 @@
     "require": {
         "php": "^8.4",
         "illuminate/support": "^13.0",
-        "tornado-engine/access": ">=0.6",
+        "tornado-engine/access": ">=0.8",
         "tornado-engine/cron": ">=0.4"
     },
     "autoload": {
@@ -23,7 +23,7 @@
             "settings": "/access/entra-id"
         },
         "branch-alias": {
-            "dev-main": "0.1.x-dev"
+            "dev-main": "0.2.x-dev"
         }
     }
 }

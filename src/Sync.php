@@ -2,7 +2,9 @@
 
 namespace TornadoEngine\AccessMicrosoftEntra;
 
+use App\Models\Setting;
 use TornadoEngine\Access\Imports;
+use TornadoEngine\Access\PrimaryRules;
 use TornadoEngine\AccessMicrosoftEntra\Models\Rule;
 
 /**
@@ -24,11 +26,13 @@ class Sync
 
         $wanted = [];
         $matched = [];
+        $emailsByRule = [];
         foreach ($rules as $rule) {
             $emails = $rule->type === 'group' ? $this->graph->groupMembers($rule->value) : [strtolower($rule->value)];
             $emails = array_filter($emails, fn ($email) => isset($people[$email]) && ! isset($excluded[$email]));
 
             $matched[$rule->id] = count($emails);
+            $emailsByRule[$rule->id] = array_values($emails);
             foreach ($emails as $email) {
                 $wanted[$rule->role_id][$email] = $people[$email]['name'];
             }
@@ -38,6 +42,10 @@ class Sync
         foreach ($matched as $ruleId => $count) {
             Rule::whereKey($ruleId)->update(['matched' => $count]);
         }
+
+        Setting::put('access_microsoft_entra.missed', json_encode(PrimaryRules::missed(
+            $rules->load('role'), $emailsByRule, array_map(fn ($person) => $person['name'], $people), fn (Rule $rule) => $rule->describe(),
+        )));
 
         return trans_choice(':count person matched.|:count people matched.', $result['people'])
             .' '.__('Gave :gave, took back :back.', [

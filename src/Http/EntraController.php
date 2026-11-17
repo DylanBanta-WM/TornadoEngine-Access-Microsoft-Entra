@@ -26,8 +26,9 @@ class EntraController extends Controller
             'usesSignInApp' => Graph::usesSignInApp(),
             'signInApp' => Setting::get('microsoft.client_id') !== null,
             'tenant' => Graph::configured() ? Graph::savedKeys()['tenant_id'] : null,
-            'rules' => Rule::with('role')->get()->sortBy(fn (Rule $rule) => [$rule->role->name, $rule->type, $rule->label ?? $rule->value]),
+            'rules' => Rule::with('role')->get()->sortBy(fn (Rule $rule) => [$rule->role->name, ! $rule->primary, $rule->type, $rule->label ?? $rule->value]),
             'roles' => Role::orderBy('name')->get(),
+            'missed' => array_filter(json_decode(Setting::get('access_microsoft_entra.missed') ?? '[]', true) ?: [], fn ($section, $roleId) => Rule::where('role_id', $roleId)->where('primary', true)->exists(), ARRAY_FILTER_USE_BOTH),
             'settings' => $cron->settings($job),
             'schedule' => $cron->scheduleFor($job),
         ]);
@@ -86,6 +87,16 @@ class EntraController extends Controller
         Rule::firstOrCreate(['role_id' => $data['role_id'], 'type' => $data['type'], 'value' => $value], ['label' => $label]);
 
         return back()->with('status', __('Added. People get the role at the next sync, or click Sync now.'));
+    }
+
+    /** Makes this its role's primary rule, or stops it being primary. One per role. */
+    public function primary(Rule $rule): RedirectResponse
+    {
+        $makePrimary = ! $rule->primary;
+        Rule::where('role_id', $rule->role_id)->update(['primary' => false]);
+        $rule->update(['primary' => $makePrimary]);
+
+        return back()->with('status', __('Saved. Click Sync now to check the other rules against it.'));
     }
 
     public function destroy(Rule $rule): RedirectResponse

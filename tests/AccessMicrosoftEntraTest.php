@@ -159,6 +159,22 @@ class AccessMicrosoftEntraTest extends TestCase
         $this->assertSame([self::GROUP, 'Teachers'], [Rule::sole()->value, Rule::sole()->label]);
     }
 
+    public function test_people_a_roles_primary_rule_missed_are_listed(): void
+    {
+        $teachers = Role::create(['name' => 'Teachers']);
+        $group = Rule::create(['role_id' => $teachers->id, 'type' => 'group', 'value' => self::GROUP, 'label' => 'Teachers']);
+        Rule::create(['role_id' => $teachers->id, 'type' => 'user', 'value' => 'bob@district.org']);
+        $manager = $this->manager();
+
+        $this->actingAs($manager)->post("/access/entra-id/rules/{$group->id}/primary");
+        $this->sync();
+
+        $this->actingAs($manager)->get('/access/entra-id')
+            ->assertSee('People the primary rule for Teachers missed (1)')
+            ->assertSee('The primary rule is the group Teachers.')
+            ->assertSeeInOrder(['Bob Office', 'bob@district.org', 'Caught by the user bob@district.org.']);
+    }
+
     public function test_only_people_who_manage_access_can_open_it(): void
     {
         $this->actingAs(User::factory()->create())->get('/access/entra-id')->assertForbidden();

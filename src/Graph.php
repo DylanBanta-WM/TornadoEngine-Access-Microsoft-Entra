@@ -51,9 +51,10 @@ class Graph
     public function users(): array
     {
         $users = [];
-        foreach ($this->all('/users', ['$select' => 'id,displayName,mail,userPrincipalName,accountEnabled', '$top' => 999]) as $user) {
+        foreach ($this->all('/users', ['$select' => 'id,displayName,givenName,surname,employeeId,mail,userPrincipalName,accountEnabled', '$top' => 999]) as $user) {
             if ($email = $this->email($user)) {
-                $users[$email] = ['email' => $email, 'name' => (string) ($user['displayName'] ?? ''), 'enabled' => (bool) ($user['accountEnabled'] ?? true)];
+                $users[$email] = ['email' => $email, 'name' => (string) ($user['displayName'] ?? ''), 'enabled' => (bool) ($user['accountEnabled'] ?? true),
+                    'given' => (string) ($user['givenName'] ?? ''), 'family' => (string) ($user['surname'] ?? ''), 'employee_id' => (string) ($user['employeeId'] ?? '')];
             }
         }
 

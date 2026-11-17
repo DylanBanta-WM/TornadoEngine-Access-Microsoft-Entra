@@ -67,21 +67,33 @@
                     @foreach ($rules as $rule)
                         <li class="flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                             <div class="min-w-0">
-                                <p class="font-medium text-gray-900 dark:text-gray-100">{{ $rule->role->name }}</p>
+                                <p class="font-medium text-gray-900 dark:text-gray-100">{{ $rule->role->name }}
+                                    @if ($rule->primary)
+                                        <span class="ms-1 rounded bg-indigo-50 dark:bg-indigo-900/50 px-1.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">{{ __('Primary') }}</span>
+                                    @endif
+                                </p>
                                 <p class="break-all text-gray-600 dark:text-gray-400">{{ __(\TornadoEngine\AccessMicrosoftEntra\Models\Rule::TYPES[$rule->type]) }}: <code class="font-mono">{{ $rule->label ?? $rule->value }}</code></p>
                                 @if ($rule->matched !== null)
                                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ trans_choice(':count person at the last sync|:count people at the last sync', $rule->matched) }}</p>
                                 @endif
                             </div>
-                            <form method="POST" action="{{ route('access.entra.rules.destroy', $rule) }}" class="-ms-2 sm:ms-0">
-                                @csrf
-                                @method('DELETE')
-                                <button class="min-h-11 px-2 text-sm text-red-700 dark:text-red-400 underline">{{ __('Remove') }}</button>
-                            </form>
+                            <span class="-ms-2 flex shrink-0 sm:ms-0">
+                                <form method="POST" action="{{ route('access.entra.rules.primary', $rule) }}">
+                                    @csrf
+                                    <button class="min-h-11 px-2 text-sm text-gray-700 dark:text-gray-300 underline">{{ $rule->primary ? __('Not primary') : __('Make primary') }}</button>
+                                </form>
+                                <form method="POST" action="{{ route('access.entra.rules.destroy', $rule) }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="min-h-11 px-2 text-sm text-red-700 dark:text-red-400 underline">{{ __('Remove') }}</button>
+                                </form>
+                            </span>
                         </li>
                     @endforeach
                 </ul>
             @endif
+
+            @include('access::primary-missed', ['missed' => $missed])
 
             @if ($roles->isEmpty())
                 <p>{!! __('Make a role on the :roles tab first.', ['roles' => '<a href="'.route('access.roles.index').'" class="font-medium text-indigo-600 dark:text-indigo-400 underline">'.e(__('Roles')).'</a>']) !!}</p>
