@@ -17,6 +17,7 @@
     "extra": {
         "tornado": {
             "name": "Access-Microsoft-Entra",
+            "prompt": "Entra ID: modules read it through TornadoEngine\\AccessMicrosoftEntra\\Graph (users, group members) when they need it, rather than keeping their own copy.",
             "core": ">=0.21",
             "core-module": false,
             "provider": "TornadoEngine\\AccessMicrosoftEntra\\AccessMicrosoftEntraServiceProvider",
