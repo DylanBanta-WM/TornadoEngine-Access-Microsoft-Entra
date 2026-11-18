@@ -22,7 +22,8 @@
             "core-module": false,
             "provider": "TornadoEngine\\AccessMicrosoftEntra\\AccessMicrosoftEntraServiceProvider",
             "settings": "/access/entra-id",
-            "needs-setup": true
+            "needs-setup": true,
+            "setup-done": "TornadoEngine\\AccessMicrosoftEntra\\Graph@configured"
         },
         "branch-alias": {
             "dev-main": "0.3.x-dev"
